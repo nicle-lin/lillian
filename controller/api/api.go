@@ -8,7 +8,9 @@ import (
 	"github.com/nicle-lin/lillian/controller/middleware/access"
 	"github.com/nicle-lin/lillian/controller/middleware/audit"
 	"github.com/nicle-lin/lillian/controller/middleware/auth"
+	"github.com/nicle-lin/lillian/helper/tlsutils"
 	"github.com/urfave/negroni"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -16,12 +18,20 @@ type Api struct {
 	listenAddr         string
 	manager            manager.Manager
 	authWhitelistCIDRS []string
+	tlsCACertPath      string
+	tlsCertPath        string
+	tlsKeyPath         string
+	allowInsecure      bool
 }
 
 type ApiConfig struct {
 	ListenAddr         string
 	Manager            manager.Manager
 	AuthWhitelistCIDRS []string
+	TLSCACertPath      string
+	TLSCertPath        string
+	TLSKeyPath         string
+	AllowInsecure      bool
 }
 
 type Credentials struct {
@@ -40,6 +50,10 @@ func NewApi(config ApiConfig) *Api {
 		listenAddr:         config.ListenAddr,
 		manager:            config.Manager,
 		authWhitelistCIDRS: config.AuthWhitelistCIDRS,
+		tlsCACertPath:      config.TLSCACertPath,
+		tlsCertPath:        config.TLSCertPath,
+		tlsKeyPath:         config.TLSKeyPath,
+		allowInsecure:      config.AllowInsecure,
 	}
 }
 
@@ -77,5 +91,35 @@ func (a *Api) Run() error {
 	}
 
 	log.Printf("listening on %s\n", a.listenAddr)
+
+	//if user config tls
+	if a.tlsCertPath != "" && a.tlsKeyPath != "" {
+		log.Infof("using TLS for communication:cert=%s key=%s", a.tlsCertPath, a.tlsKeyPath)
+
+		var caCert []byte
+		if a.tlsCACertPath != "" {
+			ca, err := ioutil.ReadFile(a.tlsCACertPath)
+			if err != nil {
+				return err
+			}
+			caCert = ca
+		}
+
+		serverCert, err := ioutil.ReadFile(a.tlsCertPath)
+		if err != nil {
+			return err
+		}
+
+		serverKey, err := ioutil.ReadFile(a.tlsKeyPath)
+		if err != nil {
+			return err
+		}
+		tlsConfig, err := tlsutils.GetServerTLSConfig(caCert, serverCert, serverKey, a.allowInsecure)
+		if err != nil {
+			return err
+		}
+		s.TLSConfig = tlsConfig
+		return s.ListenAndServeTLS(a.tlsCertPath, a.tlsKeyPath)
+	}
 	return s.ListenAndServe()
 }

@@ -30,7 +30,6 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 	if !loginSuccessful {
 		log.Warnf("无效的登陆r %s from %s", creds.Username, r.RemoteAddr)
 		http.Error(w, "无效的用户名和密码", http.StatusForbidden)
-		//http.Error(w, "invalid username/password", http.StatusForbidden)
 		return
 	}
 
@@ -82,7 +81,7 @@ func (a *Api) changePassword(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	username := a.manager.Store(w,r).Get("username").(string)
+	username := a.manager.Store(w, r).Get("username").(string)
 	if username == "" {
 		http.Error(w, "没有认证", http.StatusInternalServerError)
 		//http.Error(w, "unauthorized", http.StatusInternalServerError)

@@ -7,6 +7,8 @@ import (
 	"github.com/astaxie/beego/session"
 	_ "github.com/astaxie/beego/session/redis"
 	"github.com/nicle-lin/lillian/helper/auth"
+	"github.com/nicle-lin/mysql"
+	"github.com/nicle-lin/redis"
 	"net/http"
 )
 
@@ -41,7 +43,9 @@ type DefaultManager struct {
 	authKey          string
 	authenticator    auth.Authenticator
 	disableUsageInfo bool
-	globalSessions *session.Manager
+	globalSessions   *session.Manager
+	mysql            *mysql.Mysql
+	redis            *redis.RedisPool
 }
 
 type ScaleResult struct {
@@ -50,7 +54,9 @@ type ScaleResult struct {
 }
 
 type Manager interface {
-	Store(w http.ResponseWriter,r *http.Request) session.Store
+	Store(w http.ResponseWriter, r *http.Request) session.Store
+	Redis() *redis.RedisPool
+	Mysql() *mysql.Mysql
 	Accounts() ([]*auth.Account, error)
 	Account(username string) (*auth.Account, error)
 	Authenticate(username, password string) (bool, error)
@@ -63,36 +69,49 @@ type Manager interface {
 	ChangePassword(username, password string) error
 }
 
-
 func NewManager(addr string, password string, disableUsageInfo bool,
 	authenticator auth.Authenticator) (Manager, error) {
 	log.Debug("setting up session")
+
 	cfg := &session.ManagerConfig{
 		CookieName:     "lilliansessionid",
 		Gclifetime:     3600,
 		ProviderConfig: "127.0.0.1:6379,100,123456",
 	}
 	globalSessions, err := session.NewManager("redis", cfg)
-
 	if err != nil {
 		log.Fatal(err)
 	}
 	go globalSessions.GC()
+
+	redis := redis.NewRedisPool("127.0.0.1", "6379", "123456")
+	mysql := mysql.NewMysql("root:123456@tcp(127.0.0.1:3306)/lillian?charset=utf8")
+
 	m := &DefaultManager{
 		authenticator:    authenticator,
 		disableUsageInfo: disableUsageInfo,
-		globalSessions:globalSessions,
+		globalSessions:   globalSessions,
+		redis:            redis,
+		mysql:            mysql,
 	}
 	return m, nil
 }
 
-func (m DefaultManager) Store(w http.ResponseWriter,r *http.Request) session.Store {
-	store, err := m.globalSessions.SessionStart(w,r)
-	if err != nil{
+func (m DefaultManager) Store(w http.ResponseWriter, r *http.Request) session.Store {
+	store, err := m.globalSessions.SessionStart(w, r)
+	if err != nil {
 		log.Debug(err)
 		return nil
 	}
 	return store
+}
+
+func (m DefaultManager) Redis() *redis.RedisPool {
+	return m.redis
+}
+
+func (m DefaultManager) Mysql() *mysql.Mysql {
+	return m.mysql
 }
 
 func (m DefaultManager) Accounts() ([]*auth.Account, error) {

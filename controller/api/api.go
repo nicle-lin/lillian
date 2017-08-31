@@ -35,8 +35,6 @@ func writeCorsHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
 }
 
-
-
 func NewApi(config ApiConfig) *Api {
 	return &Api{
 		listenAddr:         config.ListenAddr,
@@ -78,6 +76,6 @@ func (a *Api) Run() error {
 		Handler: context.ClearHandler(globalMux),
 	}
 
-	log.Printf("listening on %s\n",a.listenAddr)
+	log.Printf("listening on %s\n", a.listenAddr)
 	return s.ListenAndServe()
 }

@@ -21,7 +21,7 @@ type Auditor struct {
 
 // parses username from auth token
 func getAuthUsername(r *http.Request) (string, error) {
-	return "",nil
+	return "", nil
 
 	authToken := r.Header.Get("X-Access-Token")
 

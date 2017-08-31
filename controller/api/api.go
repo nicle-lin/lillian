@@ -4,22 +4,22 @@ import (
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/nicle-lin/lillian/controller/manager"
-	"net/http"
-	"github.com/urfave/negroni"
-	"github.com/nicle-lin/lillian/controller/middleware/auth"
 	"github.com/nicle-lin/lillian/controller/middleware/access"
 	"github.com/nicle-lin/lillian/controller/middleware/audit"
+	"github.com/nicle-lin/lillian/controller/middleware/auth"
+	"github.com/urfave/negroni"
+	"net/http"
 )
 
 type Api struct {
-	listenAddr string
-	manager    manager.Manager
+	listenAddr         string
+	manager            manager.Manager
 	authWhitelistCIDRS []string
 }
 
 type ApiConfig struct {
-	ListenAddr string
-	Manager    manager.Manager
+	ListenAddr         string
+	Manager            manager.Manager
 	AuthWhitelistCIDRS []string
 }
 
@@ -36,9 +36,9 @@ func writeCorsHeaders(w http.ResponseWriter, r *http.Request) {
 
 func NewApi(config ApiConfig) *Api {
 	return &Api{
-		listenAddr: config.ListenAddr,
-		manager:    config.Manager,
-		authWhitelistCIDRS:config.AuthWhitelistCIDRS,
+		listenAddr:         config.ListenAddr,
+		manager:            config.Manager,
+		authWhitelistCIDRS: config.AuthWhitelistCIDRS,
 	}
 }
 
@@ -58,9 +58,9 @@ func (a *Api) Run() error {
 	}
 
 	apiAuthRouter := negroni.New()
-	apiAuthRequired := auth.NewAuthRequired(controllerManager,a.authWhitelistCIDRS)
+	apiAuthRequired := auth.NewAuthRequired(controllerManager, a.authWhitelistCIDRS)
 	apiAccessRequired := access.NewAccessRequired(controllerManager)
-	apiAuditor := audit.NewAuditor(controllerManager,auditExcludes)
+	apiAuditor := audit.NewAuditor(controllerManager, auditExcludes)
 
 	apiAuthRouter.Use(negroni.HandlerFunc(apiAuthRequired.HandlerFuncWithNext))
 	apiAuthRouter.Use(negroni.HandlerFunc(apiAccessRequired.HandlerFuncWithNext))
@@ -68,8 +68,7 @@ func (a *Api) Run() error {
 	apiAuthRouter.Use(negroni.HandlerFunc(apiAuditor.HandlerFuncWithNext))
 
 	apiAuthRouter.UseHandler(apiRouter)
-	globalMux.Handle("/api/",apiAuthRouter)
-
+	globalMux.Handle("/api/", apiAuthRouter)
 
 	s := &http.Server{
 		Addr:    a.listenAddr,

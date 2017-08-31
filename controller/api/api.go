@@ -1,6 +1,7 @@
 package api
 
 import (
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/context"
 	"github.com/gorilla/mux"
 	"github.com/nicle-lin/lillian/controller/manager"
@@ -33,6 +34,8 @@ func writeCorsHeaders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 	w.Header().Add("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, OPTIONS")
 }
+
+
 
 func NewApi(config ApiConfig) *Api {
 	return &Api{
@@ -75,5 +78,6 @@ func (a *Api) Run() error {
 		Handler: context.ClearHandler(globalMux),
 	}
 
+	log.Printf("listening on %s\n",a.listenAddr)
 	return s.ListenAndServe()
 }

@@ -4,10 +4,10 @@ import (
 	"errors"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/gorilla/sessions"
-	//"github.com/nicle-lin/redis"
 	"github.com/astaxie/beego/session"
+	_ "github.com/astaxie/beego/session/redis"
 	"github.com/nicle-lin/lillian/helper/auth"
+	"net/http"
 )
 
 const (
@@ -35,14 +35,13 @@ var (
 	ErrWebhookKeyDoesNotExist     = errors.New("webhook key 不存在")
 	ErrRegistryDoesNotExist       = errors.New("registry 不存在")
 	ErrConsoleSessionDoesNotExist = errors.New("控制台session不存在")
-	store                         = sessions.NewCookieStore([]byte(storeKey))
-	globalSessions                *session.Manager
 )
 
 type DefaultManager struct {
 	authKey          string
 	authenticator    auth.Authenticator
 	disableUsageInfo bool
+	globalSessions *session.Manager
 }
 
 type ScaleResult struct {
@@ -51,40 +50,49 @@ type ScaleResult struct {
 }
 
 type Manager interface {
+	Store(w http.ResponseWriter,r *http.Request) session.Store
 	Accounts() ([]*auth.Account, error)
 	Account(username string) (*auth.Account, error)
 	Authenticate(username, password string) (bool, error)
 	GetAuthenticator() auth.Authenticator
 	SaveAccount(account *auth.Account) error
 	DeleteAccount(account *auth.Account) error
+	NewAuthToken(username string, userAgent string) (*auth.AuthToken, error)
 	VerifyServiceKey(key string) error
 	VerifyAuthToken(username, token string) error
+	ChangePassword(username, password string) error
 }
 
-//func init() {
-//	cfg := &session.ManagerConfig{
-//		CookieName:     "lilliansessionid",
-//		Gclifetime:     3600,
-//		ProviderConfig: "127.0.0.1:6379,100,dghpgyss",
-//	}
-//	var err error
-//	globalSessions, err = session.NewManager("redis", cfg)
-//	if err != nil {
-//		log.Fatal(err)
-//	}
-//	go globalSessions.GC()
-//}
 
 func NewManager(addr string, password string, disableUsageInfo bool,
 	authenticator auth.Authenticator) (Manager, error) {
-	log.Debug("setting up redis session")
+	log.Debug("setting up session")
+	cfg := &session.ManagerConfig{
+		CookieName:     "lilliansessionid",
+		Gclifetime:     3600,
+		ProviderConfig: "127.0.0.1:6379,100,123456",
+	}
+	globalSessions, err := session.NewManager("redis", cfg)
 
-	//session  := redis.NewRedisPool(addr,"6379",password)
+	if err != nil {
+		log.Fatal(err)
+	}
+	go globalSessions.GC()
 	m := &DefaultManager{
 		authenticator:    authenticator,
 		disableUsageInfo: disableUsageInfo,
+		globalSessions:globalSessions,
 	}
 	return m, nil
+}
+
+func (m DefaultManager) Store(w http.ResponseWriter,r *http.Request) session.Store {
+	store, err := m.globalSessions.SessionStart(w,r)
+	if err != nil{
+		log.Debug(err)
+		return nil
+	}
+	return store
 }
 
 func (m DefaultManager) Accounts() ([]*auth.Account, error) {

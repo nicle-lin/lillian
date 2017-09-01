@@ -11,6 +11,13 @@ import (
 const STORE_KEY = "lillian"
 
 func main() {
+	defer func() {
+		if err := recover(); err != nil{
+			log.Infoln(err)
+		}
+	}()
+
+
 	app := cli.NewApp()
 	app.Name = "lillian"
 	app.Usage = "lillian crm"

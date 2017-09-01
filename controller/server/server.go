@@ -46,12 +46,12 @@ func Server(c *cli.Context) {
 	redis := redisSession()
 	mysql := mysqlSession()
 
-	controllerManager, err := manager.NewManager(redis,mysql,globalSessions, disableUsageInfo, authenticator)
+	controllerManager, err := manager.NewManager(redis, mysql, globalSessions, disableUsageInfo, authenticator)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	listenAddr := GetKeyValueString("app","host")
+	listenAddr := GetKeyValueString("app", "host")
 	apiConfig := api.ApiConfig{
 		ListenAddr: listenAddr,
 		Manager:    controllerManager,
@@ -79,21 +79,20 @@ func Session() *session.Manager {
 		return nil
 	}
 
-	if cookiename == ""{
+	if cookiename == "" {
 		cookiename = "lilliansessionid"
 	}
-	if gclifetime == 0{
+	if gclifetime == 0 {
 		gclifetime = 3600
 	}
-	if maxpoolsize == ""{
+	if maxpoolsize == "" {
 		maxpoolsize = "100"
 	}
 
 	cfg := &session.ManagerConfig{
-		CookieName:    cookiename,
+		CookieName:     cookiename,
 		Gclifetime:     int64(gclifetime),
-		ProviderConfig: fmt.Sprintf("%s:%s,%s,%s",host,port,maxpoolsize,password),
-
+		ProviderConfig: fmt.Sprintf("%s:%s,%s,%s", host, port, maxpoolsize, password),
 	}
 	globalSessions, err := session.NewManager("redis", cfg)
 	if err != nil {

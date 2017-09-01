@@ -5,7 +5,6 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/astaxie/beego/session"
-	_ "github.com/astaxie/beego/session/redis"
 	"github.com/nicle-lin/lillian/helper/auth"
 	"github.com/nicle-lin/mysql"
 	"github.com/nicle-lin/redis"
@@ -69,23 +68,8 @@ type Manager interface {
 	ChangePassword(username, password string) error
 }
 
-func NewManager(addr string, password string, disableUsageInfo bool,
+func NewManager(redis *redis.RedisPool, mysql *mysql.Mysql, globalSessions *session.Manager, disableUsageInfo bool,
 	authenticator auth.Authenticator) (Manager, error) {
-	log.Debug("setting up session")
-
-	cfg := &session.ManagerConfig{
-		CookieName:     "lilliansessionid",
-		Gclifetime:     3600,
-		ProviderConfig: "127.0.0.1:6379,100,123456",
-	}
-	globalSessions, err := session.NewManager("redis", cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	go globalSessions.GC()
-
-	redis := redis.NewRedisPool("127.0.0.1", "6379", "123456")
-	mysql := mysql.NewMysql("root:123456@tcp(127.0.0.1:3306)/lillian?charset=utf8")
 
 	m := &DefaultManager{
 		authenticator:    authenticator,

@@ -6,9 +6,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/astaxie/beego/session"
 	"github.com/nicle-lin/lillian/helper/auth"
+	"github.com/nicle-lin/lillian/model"
 	"github.com/nicle-lin/mysql"
 	"github.com/nicle-lin/redis"
 	"net/http"
+	"time"
 )
 
 const (
@@ -66,6 +68,10 @@ type Manager interface {
 	VerifyServiceKey(key string) error
 	VerifyAuthToken(username, token string) error
 	ChangePassword(username, password string) error
+	SaveEvent(event *model.Event) error
+	Events(limit int) ([]*model.Event, error)
+	PurgeEvents() error
+	LogEvent(eventType, message string, tags []string)
 }
 
 func NewManager(redis *redis.RedisPool, mysql *mysql.Mysql, globalSessions *session.Manager, disableUsageInfo bool,
@@ -178,4 +184,29 @@ func (m DefaultManager) NewServiceKey(description string) (*auth.ServiceKey, err
 
 func (m DefaultManager) ChangePassword(username, password string) error {
 	return nil
+}
+
+func (m DefaultManager) SaveEvent(event *model.Event) error {
+
+	return nil
+}
+
+func (m DefaultManager) Events(limit int) ([]*model.Event, error) {
+	return nil, nil
+}
+
+func (m DefaultManager) PurgeEvents() error {
+	return nil
+}
+
+func (m DefaultManager) LogEvent(eventType, message string, tags []string) {
+	evt := &model.Event{
+		Type:    eventType,
+		Time:    time.Now(),
+		Message: message,
+		Tags:    tags,
+	}
+	if err := m.SaveEvent(evt); err != nil {
+		log.Errorf("logging event error:%s\n", err)
+	}
 }
